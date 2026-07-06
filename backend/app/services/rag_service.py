@@ -480,10 +480,52 @@ async def index_proposal_in_rag(proposal_id: uuid.UUID, remarks: Optional[str] =
     )
     print(f"RAG: Successfully indexed proposal {proposal.id} details and decisions in ChromaDB.")
 
+def is_safe_and_on_topic(question: str) -> bool:
+    """
+    Evaluates if the question is related to road cuts, excavation, policies, Chennai,
+    permits, or specific plan decisions. Prevents standard off-topic queries and prompt injections.
+    """
+    q_lower = question.lower().strip()
+    
+    # Block list for obvious prompt injections or off-topic areas
+    blocked_keywords = [
+        "ignore previous", "ignore instructions", "system prompt", "translate to", 
+        "write a python", "write a code", "recipe", "hack", "bypass", "jailbreak",
+        "sql injection", "database", "drop table", "select *", "delete from"
+    ]
+    if any(kw in q_lower for kw in blocked_keywords):
+        return False
+        
+    # Allowed topic matches
+    allowed_topics = [
+        "why", "reject", "approve", "revision", "status", "monsoon", "policy", 
+        "road", "excavation", "cut", "trench", "permit", "clearance", "fee", 
+        "restoration", "water", "electricity", "traffic", "diversion", "delay", 
+        "overlap", "conflict", "contractor", "budget", "chennai", "gcc", "sop",
+        "circular", "annexure", "rule", "restriction", "limit", "width", "depth"
+    ]
+    
+    # Check if they are asking about the assistant identity or general greeting
+    allowed_greetings = ["hello", "hi", "hey", "who are you", "what can you do", "help"]
+    if any(greet in q_lower for greet in allowed_greetings) and len(q_lower.split()) < 5:
+        return True
+        
+    # If the question contains at least one allowed excavation/policy topic, we allow it!
+    if any(topic in q_lower for topic in allowed_topics):
+        return True
+
+    return False
+
 async def query_proposal_rag_knowledge_base(proposal_id: uuid.UUID, question: str) -> RAGQueryResponse:
     """
     Queries ChromaDB utilizing both the specific proposal context and global policy circulars.
     """
+    if not is_safe_and_on_topic(question):
+        return RAGQueryResponse(
+            answer="⚠️ **Guardrail Notice**: I am programmed to assist only with Greater Chennai Corporation (GCC) road excavation guidelines, policies, compliance questions, and specific proposal decisions. Please enter an excavation-related query.",
+            sources=[]
+        )
+
     # 1. Fetch proposal document
     proposal_doc = ""
     doc_id = f"proposal_{proposal_id}"
@@ -530,7 +572,10 @@ async def query_proposal_rag_knowledge_base(proposal_id: uuid.UUID, question: st
         "You are the GCC excavation compliance assistant. You help planners understand compliance reports and admin decisions.\n"
         "Use the SPECIFIC PLAN DETAILS and matching Source Circulars provided below to answer the user's question.\n"
         "If the user asks why the admin rejected the plan, refer specifically to the Status and Admin Decision Remarks in the PLAN DETAILS.\n"
-        "Be direct, polite, and cite constraints or policies from the circulars if they are relevant."
+        "Be direct, polite, and cite constraints or policies from the circulars if they are relevant.\n"
+        "CRITICAL GUARDRAIL: Do not answer questions that are completely unrelated to road cuts, excavation, GCC policies, or the specific plan details. "
+        "If the user asks about unrelated topics (such as cooking, coding, weather in other cities, or general trivia), refuse politely: "
+        "'I can only assist with GCC road excavation policies, guidelines, and plan compliance.'"
     )
     
     user_prompt = (
@@ -565,6 +610,12 @@ async def query_rag_knowledge_base(question: str) -> RAGQueryResponse:
     """
     Runs similarity query in ChromaDB and forwards matching contexts to the failover LLM to synthesize answer.
     """
+    if not is_safe_and_on_topic(question):
+        return RAGQueryResponse(
+            answer="⚠️ **Guardrail Notice**: I am programmed to assist only with Greater Chennai Corporation (GCC) road excavation guidelines, policies, compliance questions, and specific proposal decisions. Please enter an excavation-related query.",
+            sources=[]
+        )
+
     # 1. Similarity query top 10 matches
     query_results = collection.query(
         query_texts=[question],
@@ -608,7 +659,10 @@ async def query_rag_knowledge_base(question: str) -> RAGQueryResponse:
         "4. If the provided context does not contain enough information to answer the question, state politely "
         "that the information is not present in the indexed GCC policy documents.\n"
         "5. Structure your response professionally: use bold headers, clean bullet points, or numbered lists "
-        "for readability. Maintain a clear, administrative tone."
+        "for readability. Maintain a clear, administrative tone.\n"
+        "6. CRITICAL GUARDRAIL: Do not answer questions that are completely unrelated to road cuts, excavation, GCC policies, or the specific plan details. "
+        "If the user asks about unrelated topics (such as cooking, coding, weather in other cities, or general trivia), refuse politely: "
+        "'I can only assist with GCC road excavation policies, guidelines, and plan compliance.'"
     )
 
     prompt = (
