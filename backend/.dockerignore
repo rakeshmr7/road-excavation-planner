@@ -1,0 +1,6 @@
+__pycache__
+*.pyc
+.env
+storage
+scratch
+chroma_db
