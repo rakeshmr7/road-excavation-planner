@@ -19,7 +19,10 @@ app.mount("/storage", StaticFiles(directory="./storage"), name="storage")
 # Configure CORS for Next.js frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict to specific domains (e.g. settings.ALLOWED_ORIGINS)
+    allow_origins=[
+        "https://road-excavation-planner.vercel.app",
+        "https://road-excavation-planner-r1t7g0d50-myprojs.vercel.app",
+    ], # In production, restrict to specific domains (e.g. settings.ALLOWED_ORIGINS)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
