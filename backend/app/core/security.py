@@ -76,14 +76,23 @@ async def get_current_user(
             
     # 2. Fallback: Authenticate via Supabase Auth API
     if not user_payload:
+        if not settings.SUPABASE_URL or not settings.SUPABASE_ANON_KEY:
+            print("Security Error: Supabase URL or API Anon Key is not defined in backend settings.")
+            raise credentials_exception
+            
         async with httpx.AsyncClient() as client:
             headers = {
                 "apikey": settings.SUPABASE_ANON_KEY,
                 "Authorization": f"Bearer {token}"
             }
             try:
+                url = settings.SUPABASE_URL
+                if not url.startswith("http://") and not url.startswith("https://"):
+                    url = f"https://{url}"
+                user_endpoint = f"{url.rstrip('/')}/auth/v1/user"
+                
                 response = await client.get(
-                    f"{settings.SUPABASE_URL}/auth/v1/user",
+                    user_endpoint,
                     headers=headers,
                     timeout=5.0
                 )
@@ -91,11 +100,9 @@ async def get_current_user(
                     user_payload = response.json()
                 else:
                     raise credentials_exception
-            except httpx.RequestError:
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="Authentication service unavailable"
-                )
+            except (httpx.HTTPError, ValueError) as http_err:
+                print(f"Security Error: Failed calling Supabase auth: {http_err}")
+                raise credentials_exception
 
     if not user_payload:
         raise credentials_exception

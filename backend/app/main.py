@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api import auth, proposals, admin, gis, chat
 
+from app.core.database import init_db
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Greater Chennai Corporation Road Excavation Coordination & Planning Engine",
@@ -10,6 +12,14 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    print("FastAPI Startup: Running database checks...")
+    try:
+        await init_db()
+    except Exception as e:
+        print(f"FastAPI Startup Error: Database auto-initialization failed: {e}")
 
 from fastapi.staticfiles import StaticFiles
 import os
