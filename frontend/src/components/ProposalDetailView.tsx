@@ -9,7 +9,14 @@ import { Sidebar } from "./Sidebar";
 
 const MapComponent = dynamic(() => import("./MapComponent"), { ssr: false });
 
-const BACKEND_URL = "http://localhost:8000";
+const getBackendUrl = () => {
+  let url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
+  }
+  return url;
+};
+const BACKEND_URL = getBackendUrl();
 
 interface ProposalDetailViewProps {
   id: string;

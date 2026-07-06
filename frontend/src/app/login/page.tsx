@@ -21,7 +21,14 @@ export default function LoginPage() {
   const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
   const [backendOnline, setBackendOnline] = useState(false);
 
-  const BACKEND_URL = "http://localhost:8000";
+  const getBackendUrl = () => {
+    let url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = `https://${url}`;
+    }
+    return url;
+  };
+  const BACKEND_URL = getBackendUrl();
 
   // Redirect logged-in users back to their respective dashboards automatically
   useEffect(() => {
