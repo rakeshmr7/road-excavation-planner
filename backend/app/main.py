@@ -32,6 +32,7 @@ app.add_middleware(
     allow_origins=[
         "https://road-excavation-planner.vercel.app",
         "https://road-excavation-planner-r1t7g0d50-myprojs.vercel.app",
+        "https://road-excavation-planner.vercel.app/login"
     ], # In production, restrict to specific domains (e.g. settings.ALLOWED_ORIGINS)
     allow_credentials=True,
     allow_methods=["*"],
