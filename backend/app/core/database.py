@@ -69,25 +69,24 @@ async def init_db() -> None:
         statements = f.read().split(";")
 
     # Execute statements individually
-    async with AsyncSessionLocal() as session:
-        for stmt in statements:
-            stmt_clean = stmt.strip()
-            if not stmt_clean:
-                continue
-            # Remove inline SQL comments for stability
-            stmt_clean = "\n".join(line for line in stmt_clean.split("\n") if not line.strip().startswith("--"))
-            stmt_clean = stmt_clean.strip()
-            if not stmt_clean:
-                continue
-                
+    for stmt in statements:
+        stmt_clean = stmt.strip()
+        if not stmt_clean:
+            continue
+        # Remove inline SQL comments for stability
+        stmt_clean = "\n".join(line for line in stmt_clean.split("\n") if not line.strip().startswith("--"))
+        stmt_clean = stmt_clean.strip()
+        if not stmt_clean:
+            continue
+            
+        async with AsyncSessionLocal() as session:
             try:
                 await session.execute(text(stmt_clean))
+                await session.commit()
             except Exception as e:
+                await session.rollback()
                 # Bypass duplicate inserts during seed conflicts
                 if "already exists" in str(e) or "duplicate key" in str(e):
-                    await session.rollback()
                     continue
                 print(f"DB Init Warning: Statement failed: {stmt_clean[:60]}... | Error: {e}")
-                await session.rollback()
-        await session.commit()
-        print("DB check: Database schema tables created and seeded successfully!")
+    print("DB check: Database schema tables created and seeded successfully!")

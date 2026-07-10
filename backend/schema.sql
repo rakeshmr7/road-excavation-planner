@@ -142,9 +142,11 @@ INSERT INTO chennai_roads (name) VALUES
 ('Wallajah Road'),
 ('San Thome High Road'),
 ('Royapettah High Road'),
-('Murasoli Maran Flyover Road');
+('Murasoli Maran Flyover Road')
+ON CONFLICT (name) DO NOTHING;
 
 -- Prepopulated real government road-cut policy metadata (default set)
 INSERT INTO policies (id, file_name, file_path, version, active) VALUES 
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Greater_Chennai_Corporation_Road_Cut_SOP_2024.pdf', 'policies/GCC_SOP_2024.pdf', '1.0', TRUE),
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Tamil_Nadu_Urban_Road_Excavation_Regulations_2023.pdf', 'policies/TN_Regulations_2023.pdf', '1.0', TRUE);
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Tamil_Nadu_Urban_Road_Excavation_Regulations_2023.pdf', 'policies/TN_Regulations_2023.pdf', '1.0', TRUE)
+ON CONFLICT (id) DO NOTHING;
