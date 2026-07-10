@@ -1,6 +1,7 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, field_validator
+from typing import Any
 
 class Settings(BaseSettings):
     # App Settings
@@ -13,6 +14,17 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://postgres:postgres@localhost:5432/road_excavation",
         validation_alias="DATABASE_URL"
     )
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_url(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            # Convert sync postgresql/postgres URLs to asyncpg
+            if v.startswith("postgresql://"):
+                v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            elif v.startswith("postgres://"):
+                v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+        return v
     
     # Supabase Settings
     SUPABASE_URL: str = Field(default="", validation_alias="SUPABASE_URL")

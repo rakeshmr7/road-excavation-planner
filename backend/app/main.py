@@ -49,15 +49,41 @@ app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat")
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+import traceback
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
     print("--- VALIDATION ERROR DETAIL ---")
     print(exc.errors())
     print("-------------------------------")
-    return JSONResponse(
+    response = JSONResponse(
         status_code=422,
         content={"detail": exc.errors()}
     )
+    origin = request.headers.get("origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    print("--- UNHANDLED EXCEPTION ---")
+    traceback.print_exc()
+    print("----------------------------")
+    response = JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"}
+    )
+    origin = request.headers.get("origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 @app.get("/")
 async def root_status():

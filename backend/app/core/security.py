@@ -108,10 +108,16 @@ async def get_current_user(
         raise credentials_exception
 
     # Handle differences in payload structure between direct JWT and API response
-    user_id = user_payload.get("sub") or user_payload.get("id")
+    user_id_raw = user_payload.get("sub") or user_payload.get("id")
     email = user_payload.get("email")
     
-    if not user_id or not email:
+    if not user_id_raw or not email:
+        raise credentials_exception
+
+    import uuid
+    try:
+        user_id = uuid.UUID(str(user_id_raw))
+    except ValueError:
         raise credentials_exception
 
     # 3. Check if user profile exists in local DB, if not, create it (lazy-sync)
@@ -120,7 +126,7 @@ async def get_current_user(
     
     if not user:
         # Resolve default role/dept from user metadata if present, or assign defaults
-        user_metadata = user_payload.get("user_metadata", {})
+        user_metadata = user_payload.get("user_metadata") or {}
         full_name = user_metadata.get("full_name", email.split("@")[0].capitalize())
         role = user_metadata.get("role", "planner") # Default to planner
         department = user_metadata.get("department", "water") # Default to water board
